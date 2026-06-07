@@ -71,7 +71,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
   const paymentIntentId = typeof session.payment_intent === 'string'
     ? session.payment_intent
     : session.payment_intent?.id ?? null
-  const userId = session.metadata?.user_id || null
+  const userId = session.metadata?.user_id?.trim() || null
   const customerEmail = session.customer_details?.email ?? null
   const totalAmount = session.amount_total ?? 0
 
@@ -137,9 +137,9 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
   const { error: itemsError } = await supabase.from('order_items').insert(orderItems)
   if (itemsError) console.error('Failed to create order items:', itemsError)
 
-  // ── Award loyalty points ──
+  // ── Award loyalty stamp ──
   if (userId) {
-    await awardLoyaltyPoints(supabase, userId, orderId, totalAmount)
+    await awardLoyaltyStamp(supabase, userId, orderId, totalAmount)
   }
 
   // ── Queue confirmation email ──
@@ -192,9 +192,9 @@ async function handleRefund(charge: Stripe.Charge) {
     .update({ payment_status: 'refunded', order_status: 'cancelled' })
     .eq('id', order.id)
 
-  // ── Reverse loyalty points ──
+  // ── Reverse loyalty stamp ──
   if (order.user_id) {
-    await reverseLoyaltyPoints(supabase, order.user_id, order.id, order.total_amount)
+    await reverseLoyaltyStamp(supabase, order.user_id, order.id, order.total_amount)
   }
 
   // ── Queue cancellation email ──
@@ -213,73 +213,53 @@ async function handleRefund(charge: Stripe.Charge) {
 // ─────────────────────────────────────────────────────────────
 // HELPERS
 // ─────────────────────────────────────────────────────────────
-async function awardLoyaltyPoints(
+async function awardLoyaltyStamp(
   supabase: ServiceClient,
   userId: string,
   orderId: string,
   totalAmountCents: number
 ) {
   const points = Math.floor(totalAmountCents / 100)
-  if (points <= 0) return
 
+  // Record transaction
   const { error: txError } = await supabase.from('loyalty_transactions').insert({
     user_id: userId,
     order_id: orderId,
     points,
     type: 'earn',
-    note: 'Earned from order',
+    note: 'Order stamp earned',
   })
+  if (txError) console.error('Failed to create loyalty transaction:', txError)
 
-  if (txError) {
-    console.error('Failed to create loyalty transaction:', txError)
-    return
-  }
-
-  const { error } = await supabase
-    .from('loyalty_accounts')
-    .upsert(
-      { user_id: userId, total_points: points, updated_at: new Date().toISOString() },
-      { onConflict: 'user_id', ignoreDuplicates: false }
-    )
-
-  if (error) {
-    await supabase.rpc('increment_loyalty_points', { p_user_id: userId, p_points: points })
-  }
+  // Add stamp — awards free order every 10
+  const { error: stampError } = await supabase.rpc('add_loyalty_stamp', { p_user_id: userId })
+  if (stampError) console.error('Failed to add loyalty stamp:', stampError)
 }
 
-async function reverseLoyaltyPoints(
+async function reverseLoyaltyStamp(
   supabase: ServiceClient,
   userId: string,
   orderId: string,
   totalAmountCents: number
 ) {
   const points = Math.floor(totalAmountCents / 100)
-  if (points <= 0) return
 
-  // Check how many points were originally earned for this order
-  const { data: earnTx } = await supabase
-    .from('loyalty_transactions')
-    .select('points')
-    .eq('order_id', orderId)
-    .eq('type', 'earn')
-    .single()
-
-  const pointsToReverse = earnTx?.points ?? points
-
-  // Insert negative adjustment
+  // Record reversal transaction
   await supabase.from('loyalty_transactions').insert({
     user_id: userId,
     order_id: orderId,
-    points: -pointsToReverse,
+    points: -points,
     type: 'adjustment',
-    note: 'Reversed due to refund',
+    note: 'Stamp reversed due to refund',
   })
 
-  // Decrement balance (floor at 0)
-  await supabase.rpc('increment_loyalty_points', {
-    p_user_id: userId,
-    p_points: -pointsToReverse,
-  })
+  // Decrement stamp count, floor at 0
+  await supabase
+    .from('loyalty_accounts')
+    .update({ updated_at: new Date().toISOString() })
+    .eq('user_id', userId)
+
+  await supabase.rpc('increment_loyalty_points', { p_user_id: userId, p_points: -points })
 }
 
 async function logEmail(

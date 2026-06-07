@@ -185,15 +185,21 @@ export type Database = {
         Row: {
           user_id: string
           total_points: number
+          stamp_count: number
+          free_orders_available: number
           updated_at: string
         }
         Insert: {
           user_id: string
           total_points?: number
+          stamp_count?: number
+          free_orders_available?: number
           updated_at?: string
         }
         Update: {
           total_points?: number
+          stamp_count?: number
+          free_orders_available?: number
           updated_at?: string
         }
         Relationships: []
@@ -257,6 +263,14 @@ export type Database = {
       increment_loyalty_points: {
         Args: { p_user_id: string; p_points: number }
         Returns: undefined
+      }
+      add_loyalty_stamp: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
+      redeem_free_order: {
+        Args: { p_user_id: string }
+        Returns: boolean
       }
     }
     Enums: Record<string, never>

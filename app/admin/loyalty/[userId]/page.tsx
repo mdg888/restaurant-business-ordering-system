@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/server'
-import { Star } from 'lucide-react'
+import { Star, Gift } from 'lucide-react'
 import AdjustmentForm from '@/components/admin/AdjustmentForm'
 
 const TYPE_COLOUR: Record<string, string> = {
@@ -40,10 +40,23 @@ export default async function AdminLoyaltyUserPage({ params }: PageProps<'/admin
           <h1 className="text-2xl font-bold">{profile.full_name ?? 'Customer'}</h1>
           <p className="text-gray-400 text-sm mt-1">{profile.email}</p>
         </div>
-        <div className="flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
-          <Star size={20} className="fill-orange-400 text-orange-400" />
-          <span className="text-2xl font-bold text-orange-600">{account?.total_points ?? 0}</span>
-          <span className="text-sm text-orange-500">pts</span>
+        <div className="flex gap-3">
+          <div className="flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
+            <Star size={18} className="fill-orange-400 text-orange-400" />
+            <div>
+              <p className="text-xs text-orange-500">Visits</p>
+              <p className="text-xl font-bold text-orange-600">{account?.stamp_count ?? 0}</p>
+            </div>
+          </div>
+          {(account?.free_orders_available ?? 0) > 0 && (
+            <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+              <Gift size={18} className="text-green-500" />
+              <div>
+                <p className="text-xs text-green-600">Free Orders</p>
+                <p className="text-xl font-bold text-green-700">{account!.free_orders_available}</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

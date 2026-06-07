@@ -23,7 +23,7 @@ export default async function AdminMenuPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6 gap-4">
-        <h1 className="text-2xl font-bold">Menu</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Menu</h1>
         <div className="flex gap-2 shrink-0">
           <Link
             href="/admin/menu/categories/new"

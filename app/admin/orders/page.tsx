@@ -52,7 +52,7 @@ export default async function AdminOrdersPage({
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Orders</h1>
+      <h1 className="text-2xl font-bold mb-6 text-gray-900">Orders</h1>
 
       {/* Filters */}
       <form method="GET" className="flex flex-wrap gap-3 mb-6">
@@ -60,7 +60,7 @@ export default async function AdminOrdersPage({
           name="q"
           defaultValue={q as string}
           placeholder="Search email…"
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm w-56 focus:outline-none focus:ring-2 focus:ring-orange-300 text-gray-900"
+          className="border border-gray-200 rounded-lg px-3 py-2 text-sm w-full sm:w-56 focus:outline-none focus:ring-2 focus:ring-orange-300 text-gray-900"
         />
         <select
           name="order_status"
@@ -97,8 +97,43 @@ export default async function AdminOrdersPage({
         </Link>
       </form>
 
-      {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      {/* Mobile: card list */}
+      <div className="sm:hidden flex flex-col gap-3">
+        {!orders || orders.length === 0 ? (
+          <p className="text-center text-gray-400 py-10">No orders found</p>
+        ) : (
+          orders.map((order) => (
+            <div key={order.id} className="bg-white rounded-xl border border-gray-200 p-4">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <span className="font-mono text-xs text-gray-500">#{order.id.slice(0, 8).toUpperCase()}</span>
+                <span className="text-xs text-gray-400">
+                  {new Date(order.created_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </span>
+              </div>
+              <p className="text-sm text-gray-700 truncate mb-2">{order.customer_email ?? 'Guest'}</p>
+              <div className="flex items-center justify-between">
+                <div className="flex gap-2 flex-wrap">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PAYMENT_COLOUR[order.payment_status] ?? ''}`}>
+                    {order.payment_status}
+                  </span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLOUR[order.order_status] ?? ''}`}>
+                    {order.order_status}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="font-semibold text-sm">{formatPrice(order.total_amount)}</span>
+                  <Link href={`/admin/orders/${order.id}`} className="text-orange-500 hover:underline text-xs font-medium">
+                    View
+                  </Link>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden sm:block bg-white rounded-xl border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 text-left text-xs text-gray-400 uppercase tracking-wide">
@@ -107,7 +142,7 @@ export default async function AdminOrdersPage({
               <th className="px-4 py-3">Total</th>
               <th className="px-4 py-3">Payment</th>
               <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Date</th>
+              <th className="px-4 py-3 hidden md:table-cell">Date</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
@@ -124,7 +159,7 @@ export default async function AdminOrdersPage({
                   <td className="px-4 py-3 font-mono text-xs text-gray-500">
                     #{order.id.slice(0, 8).toUpperCase()}
                   </td>
-                  <td className="px-4 py-3 text-gray-700">{order.customer_email ?? '—'}</td>
+                  <td className="px-4 py-3 text-gray-700 max-w-[160px] truncate">{order.customer_email ?? '—'}</td>
                   <td className="px-4 py-3 font-medium">{formatPrice(order.total_amount)}</td>
                   <td className="px-4 py-3">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PAYMENT_COLOUR[order.payment_status] ?? ''}`}>
@@ -136,7 +171,7 @@ export default async function AdminOrdersPage({
                       {order.order_status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-400 text-xs">
+                  <td className="px-4 py-3 text-gray-400 text-xs hidden md:table-cell">
                     {new Date(order.created_at).toLocaleDateString('en-AU', {
                       day: 'numeric', month: 'short', year: 'numeric',
                     })}

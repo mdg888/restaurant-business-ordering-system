@@ -6,8 +6,8 @@ import type { CheckoutRequest } from '@/lib/stripe/types'
 
 export async function POST(request: NextRequest) {
   try {
-    const body: CheckoutRequest = await request.json()
-    const { items, user_id } = body
+    const body: CheckoutRequest & { free_order?: boolean } = await request.json()
+    const { items, user_id, free_order } = body
 
     if (!items || items.length === 0) {
       return NextResponse.json({ error: 'Cart is empty' }, { status: 400 })
@@ -92,6 +92,17 @@ export async function POST(request: NextRequest) {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
+    // ── Create 100% coupon if redeeming free order ──
+    let discounts: Stripe.Checkout.SessionCreateParams['discounts'] = undefined
+    if (free_order && user_id) {
+      const coupon = await stripe.coupons.create({
+        percent_off: 100,
+        duration: 'once',
+        name: 'Free Order Reward',
+      })
+      discounts = [{ coupon: coupon.id }]
+    }
+
     // ── Create Stripe Checkout Session ──
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -99,11 +110,11 @@ export async function POST(request: NextRequest) {
       mode: 'payment',
       success_url: `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/menu`,
-      // Collect email for guest orders
-      customer_email: undefined,
       customer_creation: 'always',
+      discounts,
       metadata: {
         user_id: user_id ?? '',
+        free_order: free_order ? 'true' : 'false',
         items: JSON.stringify(
           items.map((i) => ({
             menu_item_id: i.menu_item_id,

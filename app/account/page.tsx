@@ -55,21 +55,49 @@ export default async function AccountPage() {
           </form>
         </div>
 
-        {/* Loyalty points */}
-        <div className="bg-orange-50 border border-orange-200 rounded-xl p-5 mb-8 flex items-center gap-4">
-          <div className="bg-orange-500 rounded-full p-3">
-            <Star size={24} className="text-white" />
+        {/* Loyalty */}
+        <div className="bg-orange-50 border border-orange-200 rounded-xl p-5 mb-8">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="bg-orange-500 rounded-full p-3">
+              <Star size={24} className="text-white" />
+            </div>
+            <div>
+              <p className="text-sm text-orange-700 font-medium">Loyalty Stamps</p>
+              <p className="text-3xl font-bold text-orange-600">
+                {loyalty?.stamp_count ?? 0}
+                <span className="text-base font-normal text-orange-500 ml-1">stamps</span>
+              </p>
+              <p className="text-xs text-orange-500 mt-0.5">
+                Every 10 orders earns a free order
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-orange-700 font-medium">Loyalty Points</p>
-            <p className="text-3xl font-bold text-orange-600">
-              {loyalty?.total_points ?? 0}
-              <span className="text-base font-normal text-orange-500 ml-1">pts</span>
-            </p>
-            <p className="text-xs text-orange-500 mt-0.5">
-              Earn 1 point for every $1 spent
-            </p>
+
+          {/* Stamp card */}
+          <div className="flex gap-1.5 flex-wrap mb-3">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div
+                key={i}
+                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold ${
+                  i < ((loyalty?.stamp_count ?? 0) % 10)
+                    ? 'bg-orange-500 border-orange-500 text-white'
+                    : 'border-orange-300 bg-white text-orange-300'
+                }`}
+              >
+                ★
+              </div>
+            ))}
           </div>
+
+          {(loyalty?.free_orders_available ?? 0) > 0 ? (
+            <p className="text-sm font-semibold text-green-700 bg-green-100 rounded-lg px-3 py-2">
+              🎉 You have {loyalty!.free_orders_available} free order{loyalty!.free_orders_available > 1 ? 's' : ''} to redeem at checkout!
+            </p>
+          ) : (
+            <p className="text-xs text-orange-500">
+              {10 - ((loyalty?.stamp_count ?? 0) % 10)} more order{10 - ((loyalty?.stamp_count ?? 0) % 10) !== 1 ? 's' : ''} until your next free order
+            </p>
+          )}
         </div>
 
         {/* Order history */}
