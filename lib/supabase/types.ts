@@ -23,6 +23,7 @@ export type Database = {
           full_name?: string | null
           is_admin?: boolean
         }
+        Relationships: []
       }
       menu_categories: {
         Row: {
@@ -44,6 +45,7 @@ export type Database = {
           sort_order?: number
           is_active?: boolean
         }
+        Relationships: []
       }
       menu_items: {
         Row: {
@@ -77,6 +79,15 @@ export type Database = {
           is_available?: boolean
           sort_order?: number
         }
+        Relationships: [
+          {
+            foreignKeyName: "menu_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "menu_categories"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       menu_item_modifiers: {
         Row: {
@@ -98,6 +109,15 @@ export type Database = {
           price_cents?: number
           is_available?: boolean
         }
+        Relationships: [
+          {
+            foreignKeyName: "menu_item_modifiers_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       orders: {
         Row: {
@@ -105,9 +125,10 @@ export type Database = {
           user_id: string | null
           items: Json
           total_amount: number
-          payment_status: 'pending' | 'paid' | 'failed'
+          payment_status: 'pending' | 'paid' | 'failed' | 'refunded'
           order_status: 'placed' | 'completed' | 'cancelled'
           stripe_session_id: string
+          stripe_payment_intent_id: string | null
           customer_email: string | null
           created_at: string
         }
@@ -116,16 +137,19 @@ export type Database = {
           user_id?: string | null
           items: Json
           total_amount: number
-          payment_status?: 'pending' | 'paid' | 'failed'
+          payment_status?: 'pending' | 'paid' | 'failed' | 'refunded'
           order_status?: 'placed' | 'completed' | 'cancelled'
           stripe_session_id: string
+          stripe_payment_intent_id?: string | null
           customer_email?: string | null
           created_at?: string
         }
         Update: {
-          payment_status?: 'pending' | 'paid' | 'failed'
+          payment_status?: 'pending' | 'paid' | 'failed' | 'refunded'
           order_status?: 'placed' | 'completed' | 'cancelled'
+          stripe_payment_intent_id?: string | null
         }
+        Relationships: []
       }
       order_items: {
         Row: {
@@ -147,6 +171,15 @@ export type Database = {
           modifiers?: Json
         }
         Update: Record<string, never>
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       loyalty_accounts: {
         Row: {
@@ -163,6 +196,7 @@ export type Database = {
           total_points?: number
           updated_at?: string
         }
+        Relationships: []
       }
       loyalty_transactions: {
         Row: {
@@ -184,6 +218,7 @@ export type Database = {
           created_at?: string
         }
         Update: Record<string, never>
+        Relationships: []
       }
       email_logs: {
         Row: {
@@ -210,8 +245,21 @@ export type Database = {
           status?: 'pending' | 'sent' | 'failed'
           error?: string | null
         }
+        Relationships: []
       }
     }
+    Views: Record<string, never>
+    Functions: {
+      is_admin: {
+        Args: Record<string, never>
+        Returns: boolean
+      }
+      increment_loyalty_points: {
+        Args: { p_user_id: string; p_points: number }
+        Returns: undefined
+      }
+    }
+    Enums: Record<string, never>
   }
 }
 
